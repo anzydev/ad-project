@@ -14,6 +14,7 @@ from rich.live import Live
 from ad_project import __title__, __version__
 from ad_project.collectors import SystemMonitor
 from ad_project.counter import analyze_text
+from ad_project.exporter import export_snapshot_to_json
 from ad_project.ui import render_dashboard
 from ad_project.utils import NonBlockingInput
 
@@ -48,6 +49,18 @@ def parse_args(args=None) -> argparse.Namespace:
         type=str,
         default=None,
         help="Target character to count when using --count-text",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Export snapshot metrics as JSON to stdout and exit",
+    )
+    parser.add_argument(
+        "--export",
+        type=str,
+        default=None,
+        metavar="FILE",
+        help="Export snapshot metrics to a specified JSON file",
     )
     parser.add_argument(
         "-v",
@@ -170,6 +183,15 @@ def main(args=None) -> int:
         console.print(f"[bold cyan]Total Chars:[/] {stats.total_chars} | [bold cyan]Words:[/] {stats.words} | [bold cyan]Lines:[/] {stats.lines}")
         if parsed.char:
             console.print(f"[bold green]Count for '{parsed.char}':[/] {stats.target_count}")
+        return 0
+
+    if parsed.json or parsed.export:
+        snapshot = monitor.collect_snapshot()
+        json_output = export_snapshot_to_json(snapshot, file_path=parsed.export)
+        if parsed.json:
+            print(json_output)
+        elif parsed.export:
+            console.print(f"[bold green]Snapshot metrics exported successfully to:[/] {parsed.export}")
         return 0
 
     if parsed.once:

@@ -28,6 +28,21 @@ def test_main_count_text():
     assert code == 0
 
 
+def test_main_json_and_export(tmp_path, capsys):
+    from ad_project.cli import main
+    # Test --json flag
+    code = main(["--json"])
+    assert code == 0
+    captured = capsys.readouterr()
+    assert '"cpu"' in captured.out
+
+    # Test --export flag
+    out_file = tmp_path / "cli_export.json"
+    code = main(["--export", str(out_file)])
+    assert code == 0
+    assert out_file.exists()
+
+
 def test_run_single_snapshot():
     console = Console(width=100)
     monitor = SystemMonitor()
