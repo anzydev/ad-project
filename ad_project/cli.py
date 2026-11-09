@@ -13,6 +13,7 @@ from rich.live import Live
 
 from ad_project import __title__, __version__
 from ad_project.collectors import SystemMonitor
+from ad_project.counter import analyze_text
 from ad_project.ui import render_dashboard
 from ad_project.utils import NonBlockingInput
 
@@ -35,6 +36,18 @@ def parse_args(args=None) -> argparse.Namespace:
         "--once",
         action="store_true",
         help="Print a single system snapshot and exit (ideal for scripting and cron)",
+    )
+    parser.add_argument(
+        "--count-text",
+        type=str,
+        default=None,
+        help="Analyze text and count specific characters",
+    )
+    parser.add_argument(
+        "--char",
+        type=str,
+        default=None,
+        help="Target character to count when using --count-text",
     )
     parser.add_argument(
         "-v",
@@ -151,6 +164,13 @@ def main(args=None) -> int:
             signal.signal(signal.SIGTERM, sig_handler)
     except Exception:
         pass
+
+    if parsed.count_text is not None:
+        stats = analyze_text(parsed.count_text, target_char=parsed.char)
+        console.print(f"[bold cyan]Total Chars:[/] {stats.total_chars} | [bold cyan]Words:[/] {stats.words} | [bold cyan]Lines:[/] {stats.lines}")
+        if parsed.char:
+            console.print(f"[bold green]Count for '{parsed.char}':[/] {stats.target_count}")
+        return 0
 
     if parsed.once:
         return run_single_snapshot(console, monitor, parsed.interval)

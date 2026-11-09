@@ -9,6 +9,14 @@ __author__ = "anzydev"
 __license__ = "MIT"
 
 from ad_project.collectors import SystemMonitor
+from ad_project.counter import CharStats, analyze_text, count_specific_char
 from ad_project.models import DashboardSnapshot
 
-__all__ = ["SystemMonitor", "DashboardSnapshot", "__version__"]
+__all__ = [
+    "SystemMonitor",
+    "DashboardSnapshot",
+    "CharStats",
+    "analyze_text",
+    "count_specific_char",
+    "__version__",
+]

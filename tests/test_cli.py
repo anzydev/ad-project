@@ -15,9 +15,17 @@ def test_parse_args_defaults():
 
 
 def test_parse_args_custom():
-    args = parse_args(["-i", "2.5", "--once"])
+    args = parse_args(["-i", "2.5", "--once", "--count-text", "hello world", "--char", "l"])
     assert args.interval == 2.5
     assert args.once is True
+    assert args.count_text == "hello world"
+    assert args.char == "l"
+
+
+def test_main_count_text():
+    from ad_project.cli import main
+    code = main(["--count-text", "banana", "--char", "a"])
+    assert code == 0
 
 
 def test_run_single_snapshot():
