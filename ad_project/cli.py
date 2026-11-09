@@ -128,8 +128,17 @@ def run_live_monitor(console: Console, monitor: SystemMonitor, initial_interval:
 
 def main(args=None) -> int:
     """Main CLI entrypoint."""
+    if sys.platform == "win32":
+        try:
+            if hasattr(sys.stdout, "reconfigure"):
+                sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+            if hasattr(sys.stderr, "reconfigure"):
+                sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
     parsed = parse_args(args)
-    console = Console()
+    console = Console(legacy_windows=False)
     monitor = SystemMonitor()
 
     def sig_handler(sig, frame):
