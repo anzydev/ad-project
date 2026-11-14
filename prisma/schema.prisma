@@ -1,0 +1,50 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-py"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  password_hash String
+  role         UserRole   @default(USER)
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
+  snapshots    Snapshot[]
+  alerts       Alert[]
+}
+
+model Snapshot {
+  id            String   @id @default(cuid())
+  owner_id      String
+  captured_at   DateTime @default(now())
+  cpu_percent   Float
+  memory_percent Float
+  payload       String   @db.Text
+  owner         User     @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+
+  @@index([owner_id, captured_at])
+  @@index([captured_at])
+}
+
+model Alert {
+  id        String   @id @default(cuid())
+  owner_id  String
+  metric    String
+  threshold Float
+  message   String
+  created_at DateTime @default(now())
+  resolved  Boolean  @default(false)
+  owner     User     @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+
+  @@index([owner_id, resolved, created_at])
+}
