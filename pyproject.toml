@@ -34,11 +34,21 @@ classifiers = [
 dependencies = [
     "psutil>=5.9.0",
     "rich>=13.0.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "pydantic-settings>=2.6.0",
+    "PyJWT>=2.9.0",
+    "prisma>=0.15.0",
+    "email-validator>=2.2.0",
 ]
 
 [project.scripts]
 ad-project = "ad_project.cli:main"
 admon = "ad_project.cli:main"
+ad-api = "ad_project.api.app:run"
+
+[tool.setuptools.packages.find]
+include = ["ad_project*"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
