@@ -57,6 +57,9 @@ Icon
 Thumbs.db
 ehthumbs.db
 
+# Local environment configuration
+.env
+
 # IDEs
 .idea/
 .vscode/

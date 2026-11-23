@@ -1,0 +1,45 @@
+Pager usage is off.
+ANALYZE
+ACTUAL PLANNER DECISION: user monitoring history
+                                                     QUERY PLAN
+--------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=1.19..1.19 rows=3 width=39) (actual time=0.017..0.018 rows=3.00 loops=1)
+   Buffers: shared hit=1
+   ->  Sort  (cost=1.19..1.19 rows=3 width=39) (actual time=0.016..0.017 rows=3.00 loops=1)
+         Sort Key: captured_at DESC
+         Sort Method: quicksort  Memory: 25kB
+         Buffers: shared hit=1
+         ->  Seq Scan on "Snapshot"  (cost=0.00..1.16 rows=3 width=39) (actual time=0.006..0.007 rows=3.00 loops=1)
+               Filter: (owner_id = 'de-user-002'::text)
+               Rows Removed by Filter: 10
+               Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=79
+ Planning Time: 0.386 ms
+ Execution Time: 0.035 ms
+(14 rows)
+
+INDEX ACCESS PATH (seq scan disabled only for this transaction)
+BEGIN
+SET
+                                                                            QUERY PLAN
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=0.14..8.19 rows=3 width=39) (actual time=0.008..0.009 rows=3.00 loops=1)
+   Buffers: shared hit=2
+   ->  Index Scan Backward using "Snapshot_owner_id_captured_at_idx" on "Snapshot"  (cost=0.14..8.19 rows=3 width=39) (actual time=0.008..0.009 rows=3.00 loops=1)
+         Index Cond: (owner_id = 'de-user-002'::text)
+         Index Searches: 1
+         Buffers: shared hit=2
+ Planning Time: 0.025 ms
+ Execution Time: 0.014 ms
+(8 rows)
+
+ROLLBACK
+INDEX DEFINITIONS
+             indexname             |                                                 indexdef
+-----------------------------------+-----------------------------------------------------------------------------------------------------------
+ Snapshot_pkey                     | CREATE UNIQUE INDEX "Snapshot_pkey" ON public."Snapshot" USING btree (id)
+ Snapshot_captured_at_idx          | CREATE INDEX "Snapshot_captured_at_idx" ON public."Snapshot" USING btree (captured_at)
+ Snapshot_cpu_memory_idx           | CREATE INDEX "Snapshot_cpu_memory_idx" ON public."Snapshot" USING btree (cpu_percent, memory_percent)
+ Snapshot_owner_id_captured_at_idx | CREATE INDEX "Snapshot_owner_id_captured_at_idx" ON public."Snapshot" USING btree (owner_id, captured_at)
+(4 rows)

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1170" height="710" viewBox="0 0 1170 710">
+<rect width="1170" height="710" rx="20" fill="#f7fafc"/>
+<text x="585" y="25" fill="#1e293b" font-size="18" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle">AD Project — PostgreSQL ER Diagram</text>
+<path d="M 490 330 L 268 374" fill="none" stroke="#64748b" stroke-width="3"/>
+<path d="M 640 330 L 901 374" fill="none" stroke="#64748b" stroke-width="3"/>
+<text x="450" y="341" fill="#334155" font-size="16" font-family="Arial" font-weight="700">1</text>
+<text x="295" y="366" fill="#334155" font-size="16" font-family="Arial" font-weight="700">N</text>
+<text x="665" y="341" fill="#334155" font-size="16" font-family="Arial" font-weight="700">1</text>
+<text x="879" y="367" fill="#334155" font-size="16" font-family="Arial" font-weight="700">N</text>
+<text x="336" y="340" fill="#64748b" font-size="15" font-family="Arial">owns</text>
+<text x="791" y="340" fill="#64748b" font-size="15" font-family="Arial">owns</text>
+
+<rect x="390" y="40" width="350" height="272" rx="12" fill="#ffffff" stroke="#94a3b8" stroke-width="2"/>
+<path d="M402,40 H728 Q740,40 740,52 V93 H390 V52 Q390,40 402,40" fill="#dce9f8"/>
+<text x="408" y="74" fill="#0f172a" font-size="22" font-weight="700" font-family="Arial">User</text>
+<text x="410" y="124" fill="#334155" font-size="17" font-family="Arial">id — PK · String</text>
+<text x="410" y="156" fill="#334155" font-size="17" font-family="Arial">email — UNIQUE · String</text>
+<text x="410" y="188" fill="#334155" font-size="17" font-family="Arial">password_hash · String</text>
+<text x="410" y="220" fill="#334155" font-size="17" font-family="Arial">role · UserRole enum</text>
+<text x="410" y="252" fill="#334155" font-size="17" font-family="Arial">created_at · DateTime</text>
+<text x="410" y="284" fill="#334155" font-size="17" font-family="Arial">updated_at · DateTime</text>
+<path d="M390,93 H740" stroke="#94a3b8" stroke-width="1"/>
+<rect x="54" y="374" width="430" height="272" rx="12" fill="#ffffff" stroke="#94a3b8" stroke-width="2"/>
+<path d="M66,374 H472 Q484,374 484,386 V427 H54 V386 Q54,374 66,374" fill="#dce9f8"/>
+<text x="72" y="408" fill="#0f172a" font-size="22" font-weight="700" font-family="Arial">Snapshot</text>
+<text x="74" y="458" fill="#334155" font-size="17" font-family="Arial">id — PK · String</text>
+<text x="74" y="490" fill="#334155" font-size="17" font-family="Arial">owner_id — FK → User.id</text>
+<text x="74" y="522" fill="#334155" font-size="17" font-family="Arial">captured_at · DateTime</text>
+<text x="74" y="554" fill="#334155" font-size="17" font-family="Arial">cpu_percent · Float</text>
+<text x="74" y="586" fill="#334155" font-size="17" font-family="Arial">memory_percent · Float</text>
+<text x="74" y="618" fill="#334155" font-size="17" font-family="Arial">payload · Text (serialized JSON)</text>
+<path d="M54,427 H484" stroke="#94a3b8" stroke-width="1"/>
+<rect x="686" y="374" width="430" height="304" rx="12" fill="#ffffff" stroke="#94a3b8" stroke-width="2"/>
+<path d="M698,374 H1104 Q1116,374 1116,386 V427 H686 V386 Q686,374 698,374" fill="#dce9f8"/>
+<text x="704" y="408" fill="#0f172a" font-size="22" font-weight="700" font-family="Arial">Alert</text>
+<text x="706" y="458" fill="#334155" font-size="17" font-family="Arial">id — PK · String</text>
+<text x="706" y="490" fill="#334155" font-size="17" font-family="Arial">owner_id — FK → User.id</text>
+<text x="706" y="522" fill="#334155" font-size="17" font-family="Arial">metric · String</text>
+<text x="706" y="554" fill="#334155" font-size="17" font-family="Arial">threshold · Float</text>
+<text x="706" y="586" fill="#334155" font-size="17" font-family="Arial">message · String</text>
+<text x="706" y="618" fill="#334155" font-size="17" font-family="Arial">created_at · DateTime</text>
+<text x="706" y="650" fill="#334155" font-size="17" font-family="Arial">resolved · Boolean</text>
+<path d="M686,427 H1116" stroke="#94a3b8" stroke-width="1"/>
+<text x="585" y="694" fill="#64748b" font-size="14" font-family="Arial" text-anchor="middle">PK = Primary Key  •  FK = Foreign Key  •  One user owns zero or many snapshots / alerts</text></svg>

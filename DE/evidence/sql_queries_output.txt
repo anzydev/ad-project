@@ -1,0 +1,114 @@
+Pager usage is off.
+Border style is 2.
+Q1 INSERT: Add one realistic user
+INSERT 0 1
+Q2 UPDATE: Raise the demo user role
+UPDATE 1
+Q3 DELETE: Remove only the demo snapshot if present
+DELETE 1
+Q4 INSERT: Add a snapshot for the demo user
+INSERT 0 1
+Q5 JOIN: Owners and their snapshots
++-------------------------+-------------------------+-------------+----------------+
+|          email          |       captured_at       | cpu_percent | memory_percent |
++-------------------------+-------------------------+-------------+----------------+
+| demo@adproject.local    | 2026-11-21 20:59:56.536 |       64.25 |          58.75 |
+| admin@adproject.local   | 2026-11-21 20:47:05.016 |          31 |             20 |
+| admin@adproject.local   | 2026-11-21 20:47:04.805 |          25 |             35 |
+| noah@adproject.local    | 2026-11-21 17:46:21.416 |        12.5 |             38 |
+| sofia@adproject.local   | 2026-11-21 16:46:21.416 |          31 |             67 |
+| crud-921de469@gmail.com | 2026-11-21 15:18:52.063 |          20 |             30 |
+| crud-921de469@gmail.com | 2026-11-21 15:18:52.063 |          25 |             35 |
+| sofia@adproject.local   | 2026-11-21 14:46:21.416 |          88 |             83 |
+| liam@adproject.local    | 2026-11-21 13:46:21.416 |        51.5 |             62 |
+| maya@adproject.local    | 2026-11-21 12:46:21.416 |          76 |           71.5 |
+| liam@adproject.local    | 2026-11-21 11:46:21.416 |          23 |             55 |
+| maya@adproject.local    | 2026-11-21 10:46:21.416 |          42 |           48.5 |
+| maya@adproject.local    | 2026-11-21 08:46:21.416 |        18.5 |             42 |
++-------------------------+-------------------------+-------------+----------------+
+(13 rows)
+
+Q6 FILTERING: CPU above 50 percent
++------------------+--------------+-------------+-------------------------+
+|        id        |   owner_id   | cpu_percent |       captured_at       |
++------------------+--------------+-------------+-------------------------+
+| de-snap-006      | de-user-004  |          88 | 2026-11-21 14:46:21.416 |
+| de-snap-003      | de-user-002  |          76 | 2026-11-21 12:46:21.416 |
+| de-demo-snapshot | de-demo-user |       64.25 | 2026-11-21 20:59:56.536 |
+| de-snap-005      | de-user-003  |        51.5 | 2026-11-21 13:46:21.416 |
++------------------+--------------+-------------+-------------------------+
+(4 rows)
+
+Q7 SORTING: Highest memory snapshots
++------------------+--------------+----------------+-------------------------+
+|        id        |   owner_id   | memory_percent |       captured_at       |
++------------------+--------------+----------------+-------------------------+
+| de-snap-006      | de-user-004  |             83 | 2026-11-21 14:46:21.416 |
+| de-snap-003      | de-user-002  |           71.5 | 2026-11-21 12:46:21.416 |
+| de-snap-007      | de-user-004  |             67 | 2026-11-21 16:46:21.416 |
+| de-snap-005      | de-user-003  |             62 | 2026-11-21 13:46:21.416 |
+| de-demo-snapshot | de-demo-user |          58.75 | 2026-11-21 20:59:56.536 |
+| de-snap-004      | de-user-003  |             55 | 2026-11-21 11:46:21.416 |
+| de-snap-002      | de-user-002  |           48.5 | 2026-11-21 10:46:21.416 |
+| de-snap-001      | de-user-002  |             42 | 2026-11-21 08:46:21.416 |
+| de-snap-008      | de-user-005  |             38 | 2026-11-21 17:46:21.416 |
+| de-tx-commit     | de-admin-001 |             35 | 2026-11-21 20:47:04.805 |
++------------------+--------------+----------------+-------------------------+
+(10 rows)
+
+Q8 AGGREGATE: Overall snapshot averages
++-----------+---------+------------+
+| snapshots | avg_cpu | max_memory |
++-----------+---------+------------+
+|        13 |   39.06 |      83.00 |
++-----------+---------+------------+
+(1 row)
+
+Q9 GROUP BY: Snapshot counts per owner
++---------------------------+----------------+---------+
+|         owner_id          | snapshot_count | avg_cpu |
++---------------------------+----------------+---------+
+| de-user-002               |              3 |   45.50 |
+| de-user-005               |              1 |   12.50 |
+| cmwqjzg5j0000voikrv92fkak |              2 |   22.50 |
+| de-demo-user              |              1 |   64.25 |
+| de-admin-001              |              2 |   28.00 |
+| de-user-004               |              2 |   59.50 |
+| de-user-003               |              2 |   37.25 |
++---------------------------+----------------+---------+
+(7 rows)
+
+Q10 HAVING: Owners with more than one snapshot
++---------------------------+----------------+
+|         owner_id          | snapshot_count |
++---------------------------+----------------+
+| de-user-002               |              3 |
+| cmwqjzg5j0000voikrv92fkak |              2 |
+| de-admin-001              |              2 |
+| de-user-004               |              2 |
+| de-user-003               |              2 |
++---------------------------+----------------+
+(5 rows)
+
+Q11 SUBQUERY: Above-average CPU snapshots
++------------------+--------------+-------------+
+|        id        |   owner_id   | cpu_percent |
++------------------+--------------+-------------+
+| de-snap-006      | de-user-004  |          88 |
+| de-snap-003      | de-user-002  |          76 |
+| de-demo-snapshot | de-demo-user |       64.25 |
+| de-snap-005      | de-user-003  |        51.5 |
+| de-snap-002      | de-user-002  |          42 |
++------------------+--------------+-------------+
+(5 rows)
+
+Q12 JOIN + GROUP + HAVING: Users with unresolved alerts
++-----------------------+-------------------+
+|         email         | unresolved_alerts |
++-----------------------+-------------------+
+| admin@adproject.local |                 1 |
+| liam@adproject.local  |                 1 |
+| noah@adproject.local  |                 1 |
+| sofia@adproject.local |                 1 |
++-----------------------+-------------------+
+(4 rows)

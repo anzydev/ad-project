@@ -1,0 +1,3 @@
+Concurrency demo: two transactions used SELECT ... FOR UPDATE
+{'B': {'read_before': 10.0}, 'A': {'read_before': 57.0}}
+Final committed cpu_percent=31.0

@@ -34,6 +34,7 @@ model Snapshot {
 
   @@index([owner_id, captured_at])
   @@index([captured_at])
+  @@index([cpu_percent, memory_percent], map: "Snapshot_cpu_memory_idx")
 }
 
 model Alert {

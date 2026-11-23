@@ -115,6 +115,12 @@ tests/          Unit and backend security tests
 main.py         Direct terminal application entrypoint
 ```
 
+## Data Engineering (DE) capstone submission
+
+The database deliverables are collected in **[DE/README.md](DE/README.md)**: ER diagram, implemented Prisma schema and SQL migrations, application SQL queries with recorded outputs, integrity/transaction demonstrations, and the individual Q1–Q5 viva speaking and screen-demo guide (`DE/08_VIVA_DEMO.md`).
+
+For the live demo, run `./START_DE_DEMO.command` on macOS or follow the setup steps in `DE/README.md`. The individual video must be **recorded and submitted separately** through the course form; pushing the repository does not submit the video.
+
 ## Tests
 
 ```bash

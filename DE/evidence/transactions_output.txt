@@ -1,0 +1,4 @@
+COMMIT demo: inserted Snapshot and Alert together
+ROLLBACK demo: Snapshot and Alert were not retained
+CONSTRAINT demo: rejected cpu_percent=150 (Snapshot_cpu_percent_range_check)
+Verification: committed=1, rolled_back=0

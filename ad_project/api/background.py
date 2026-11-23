@@ -4,6 +4,7 @@ import asyncio
 import logging
 
 from prisma import Prisma
+from starlette.concurrency import run_in_threadpool
 
 from ad_project.api.config import Settings
 from ad_project.api.serialization import snapshot_record
@@ -17,7 +18,7 @@ async def collect_periodically(db: Prisma, settings: Settings, owner_id: str) ->
     monitor = SystemMonitor()
     while True:
         try:
-            snapshot = monitor.collect_snapshot()
+            snapshot = await run_in_threadpool(monitor.collect_snapshot)
             await db.snapshot.create(data=snapshot_record(snapshot, owner_id))
         except asyncio.CancelledError:
             raise
