@@ -12,6 +12,7 @@ background collection.
 
 - Live terminal dashboard with automatic refresh
 - CPU, memory, swap, disk, network, battery, and process metrics
+- Interactive 3D Telemetry Portal and Google Cardboard VR view (`--portal` or standalone app)
 - One-shot output for scripts with `--once`
 - JSON output and file export
 - Text and character analysis with `--count-text`
@@ -56,6 +57,7 @@ python main.py --once
 python main.py --json
 python main.py --export snapshot.json
 python main.py --count-text "hello world" --char l
+python main.py --portal
 python main.py --help
 ```
 

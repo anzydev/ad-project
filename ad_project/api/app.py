@@ -10,7 +10,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from pathlib import Path
+from fastapi.responses import HTMLResponse, JSONResponse
+
+PORTAL_FILE = Path(__file__).resolve().parent.parent.parent / "portal" / "index.html"
 import uvicorn
 
 from ad_project.api.background import collect_periodically
@@ -130,6 +133,15 @@ async def unexpected_error_handler(request: Request, exc: Exception):
         status_code=500,
         content={"error": {"code": "internal_error", "message": "Internal server error"}},
     )
+
+
+@app.get("/portal", response_class=HTMLResponse, include_in_schema=False)
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def serve_portal():
+    """Serve the 3D Telemetry & VR Cardboard portal."""
+    if PORTAL_FILE.is_file():
+        return HTMLResponse(content=PORTAL_FILE.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>AD-Project Telemetry Portal</h1><p>Portal file not found.</p>")
 
 
 # Added last, so response security headers wrap the other app middleware.

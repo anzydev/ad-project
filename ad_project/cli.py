@@ -63,6 +63,11 @@ def parse_args(args=None) -> argparse.Namespace:
         help="Export snapshot metrics to a specified JSON file",
     )
     parser.add_argument(
+        "--portal",
+        action="store_true",
+        help="Launch the interactive 3D Telemetry and VR Cardboard portal in your browser",
+    )
+    parser.add_argument(
         "-v",
         "--version",
         action="version",
@@ -177,6 +182,19 @@ def main(args=None) -> int:
             signal.signal(signal.SIGTERM, sig_handler)
     except Exception:
         pass
+
+    if parsed.portal:
+        import webbrowser
+        from pathlib import Path
+        portal_file = Path(__file__).resolve().parent.parent / "portal" / "index.html"
+        console.print("[bold cyan]Launching AD-Project 3D Telemetry & VR Portal...[/]")
+        if portal_file.is_file():
+            webbrowser.open(portal_file.as_uri())
+            console.print(f"[bold green]Opened portal in browser:[/] {portal_file.as_uri()}")
+        else:
+            webbrowser.open("http://127.0.0.1:8000/portal")
+            console.print("[bold green]Opened portal at:[/] http://127.0.0.1:8000/portal")
+        return 0
 
     if parsed.count_text is not None:
         stats = analyze_text(parsed.count_text, target_char=parsed.char)

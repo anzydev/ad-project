@@ -67,3 +67,12 @@ ehthumbs.db
 *.swo
 *~
 
+# Unity artifacts
+**/[Ll]ibrary/
+**/[Tt]emp/
+**/[Oo]bj/
+**/[Ll]ogs/
+**/[Uu]ser[Ss]ettings/
+*.pid
+unity_build.log
+

@@ -86,6 +86,14 @@ async def health(db: Prisma = Depends(database_session)) -> HealthResponse:
     return HealthResponse(status="ok", database="ok")
 
 
+@router.get("/metrics/live", tags=["system"])
+async def get_live_metrics() -> dict:
+    """Live system telemetry snapshot for real-time 3D and VR visualization."""
+    from ad_project.exporter import snapshot_to_dict
+    snapshot = await run_in_threadpool(SystemMonitor().collect_snapshot)
+    return snapshot_to_dict(snapshot)
+
+
 @auth_router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     request: UserCreate,

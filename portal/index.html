@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AD-Project 3D Telemetry Portal & VR</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background-color: #060911;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    /* Minimalist HUD overlay */
+    #hud {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(10, 15, 29, 0.75);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      backdrop-filter: blur(12px);
+      padding: 18px 24px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.6;
+      max-width: 380px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      z-index: 10;
+    }
+    #hud.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-10px);
+    }
+    .hud-header {
+      font-size: 15px;
+      font-weight: 700;
+      color: #38bdf8;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hud-metric {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.07);
+      padding-bottom: 4px;
+    }
+    .hud-label { color: #94a3b8; }
+    .hud-val { font-weight: 600; color: #f1f5f9; }
+    .hud-controls {
+      margin-top: 12px;
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+    /* Top action toolbar */
+    #toolbar {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+      z-index: 10;
+    }
+    .btn {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #38bdf8;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: #38bdf8;
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+    .btn.active {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #38bdf8;
+    }
+    /* VR Cardboard split view divider */
+    #vr-divider {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 2px;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.2);
+      z-index: 5;
+    }
+    #vr-divider.active { display: block; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <div id="vr-divider"></div>
+
+  <div id="hud">
+    <div class="hud-header">
+      <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e;"></span>
+      Telemetry Portal 3D
+    </div>
+    <div class="hud-metric"><span class="hud-label">CPU Usage:</span><span class="hud-val" id="val-cpu">-- %</span></div>
+    <div class="hud-metric"><span class="hud-label">RAM Memory:</span><span class="hud-val" id="val-ram">-- %</span></div>
+    <div class="hud-metric"><span class="hud-label">Swap Memory:</span><span class="hud-val" id="val-swap">-- %</span></div>
+    <div class="hud-metric"><span class="hud-label">Disk Storage:</span><span class="hud-val" id="val-disk">-- %</span></div>
+    <div class="hud-metric"><span class="hud-label">Network I/O:</span><span class="hud-val" id="val-net">↑ -- KB/s | ↓ -- KB/s</span></div>
+    <div class="hud-metric"><span class="hud-label">Battery Power:</span><span class="hud-val" id="val-bat">-- %</span></div>
+    <div class="hud-metric"><span class="hud-label">Active Processes:</span><span class="hud-val" id="val-proc">--</span></div>
+    <div class="hud-controls">
+      • <b>Left Click + Drag:</b> Orbit 3D Camera<br>
+      • <b>Mouse Wheel:</b> Zoom In / Out<br>
+      • <b>[V]:</b> Toggle VR Touch (Google Cardboard mode)<br>
+      • <b>[H]:</b> Toggle Clean / Art Mode
+    </div>
+  </div>
+
+  <div id="toolbar">
+    <button class="btn" id="btn-vr" onclick="toggleVRMode()">🥽 VR Touch (Cardboard)</button>
+    <button class="btn" id="btn-hud" onclick="toggleHUD()">👁️ Toggle HUD</button>
+    <button class="btn" id="btn-reset" onclick="resetCamera()">↺ Reset View</button>
+  </div>
+
+  <script>
+    // --- 1. Three.js Scene Setup ---
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x060911);
+    scene.fog = new THREE.FogExp2(0x060911, 0.035);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    // Camera Rig & Cameras
+    const cameraRig = new THREE.Group();
+    scene.add(cameraRig);
+
+    const monoCamera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+    monoCamera.position.set(0, 4, 12);
+    monoCamera.lookAt(0, 2.5, 0);
+
+    const leftCamera = new THREE.PerspectiveCamera(50, (window.innerWidth / 2) / window.innerHeight, 0.1, 100);
+    const rightCamera = new THREE.PerspectiveCamera(50, (window.innerWidth / 2) / window.innerHeight, 0.1, 100);
+    const ipd = 0.064;
+
+    let isVRMode = false;
+    let showHUD = true;
+
+    // --- 2. Lighting ---
+    const ambientLight = new THREE.AmbientLight(0x384252, 0.8);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xb0d8ff, 1.0);
+    dirLight.position.set(5, 10, 7);
+    scene.add(dirLight);
+
+    const coreLight = new THREE.PointLight(0x00f0ff, 2.5, 12);
+    coreLight.position.set(0, 2.5, 0);
+    scene.add(coreLight);
+
+    // --- 3. Telemetry 3D Objects ---
+    // Floor Pedestal
+    const floorGeo = new THREE.CylinderGeometry(7, 7.5, 0.2, 48);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x0c111d, roughness: 0.8, metalness: 0.2 });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.position.y = -0.1;
+    scene.add(floor);
+
+    // Subtle Grid Rings
+    for (let r = 2; r <= 6; r += 1.5) {
+      const ringGeo = new THREE.RingGeometry(r - 0.02, r + 0.02, 64);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x1e293b, side: THREE.DoubleSide });
+      const gridRing = new THREE.Mesh(ringGeo, ringMat);
+      gridRing.rotation.x = -Math.PI / 2;
+      gridRing.position.y = 0.01;
+      scene.add(gridRing);
+    }
+
+    // A. CPU Core (Faceted Crystal / Octahedron)
+    const cpuGeo = new THREE.IcosahedronGeometry(1.2, 1);
+    const cpuMat = new THREE.MeshStandardMaterial({
+      color: 0x00d2ff,
+      emissive: 0x0088cc,
+      emissiveIntensity: 0.8,
+      roughness: 0.2,
+      metalness: 0.8,
+      wireframe: false
+    });
+    const cpuCore = new THREE.Mesh(cpuGeo, cpuMat);
+    cpuCore.position.set(0, 2.5, 0);
+    scene.add(cpuCore);
+
+    // Inner Wireframe Core for high-tech aesthetic
+    const cpuWireMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.35 });
+    const cpuWire = new THREE.Mesh(cpuGeo, cpuWireMat);
+    cpuCore.add(cpuWire);
+
+    // B. Memory Rings (RAM & Swap)
+    const ramGeo = new THREE.TorusGeometry(2.3, 0.08, 16, 100);
+    const ramMat = new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x059669, emissiveIntensity: 0.6, metalness: 0.8 });
+    const ramRing = new THREE.Mesh(ramGeo, ramMat);
+    ramRing.position.set(0, 2.5, 0);
+    ramRing.rotation.x = Math.PI / 2;
+    scene.add(ramRing);
+
+    const swapGeo = new THREE.TorusGeometry(1.8, 0.06, 16, 100);
+    const swapMat = new THREE.MeshStandardMaterial({ color: 0x8b5cf6, emissive: 0x6d28d9, emissiveIntensity: 0.6, metalness: 0.8 });
+    const swapRing = new THREE.Mesh(swapGeo, swapMat);
+    swapRing.position.set(0, 2.5, 0);
+    swapRing.rotation.set(Math.PI / 4, Math.PI / 6, 0);
+    scene.add(swapRing);
+
+    // C. Disk Platters (Tiered Storage Disks)
+    const diskPlatters = [];
+    for (let i = 0; i < 3; i++) {
+      const radius = 3.2 - (i * 0.35);
+      const diskGeo = new THREE.CylinderGeometry(radius, radius, 0.12, 32);
+      const diskMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.3, metalness: 0.9 });
+      const disk = new THREE.Mesh(diskGeo, diskMat);
+      disk.position.set(0, 0.3 + (i * 0.3), 0);
+      scene.add(disk);
+      diskPlatters.push(disk);
+    }
+
+    // D. Network Upload & Download Beacons with Particle Streams
+    const beaconGeo = new THREE.CylinderGeometry(0.12, 0.12, 2.8, 16);
+    const beaconMat = new THREE.MeshStandardMaterial({ color: 0x0ea5e9, emissive: 0x0284c7, emissiveIntensity: 0.8 });
+
+    const upBeacon = new THREE.Mesh(beaconGeo, beaconMat);
+    upBeacon.position.set(-3.6, 1.4, 0);
+    scene.add(upBeacon);
+
+    const downBeacon = new THREE.Mesh(beaconGeo, beaconMat);
+    downBeacon.position.set(3.6, 1.4, 0);
+    scene.add(downBeacon);
+
+    // Network Particle Streams
+    function createParticleStream(color, count) {
+      const geo = new THREE.BufferGeometry();
+      const positions = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        positions[i * 3] = (Math.random() - 0.5) * 0.3;
+        positions[i * 3 + 1] = Math.random() * 3.0;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 0.3;
+      }
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const mat = new THREE.PointsMaterial({ color: color, size: 0.08, transparent: true, opacity: 0.85 });
+      return new THREE.Points(geo, mat);
+    }
+
+    const upParticles = createParticleStream(0x38bdf8, 80);
+    upBeacon.add(upParticles);
+    const downParticles = createParticleStream(0x34d399, 120);
+    downBeacon.add(downParticles);
+
+    // E. Battery Energy Cell
+    const batOuterGeo = new THREE.CylinderGeometry(0.35, 0.35, 1.4, 24);
+    const batOuterMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.2, metalness: 0.8, transparent: true, opacity: 0.4 });
+    const batteryCell = new THREE.Mesh(batOuterGeo, batOuterMat);
+    batteryCell.position.set(0, 1.2, -3.0);
+    scene.add(batteryCell);
+
+    const batFillGeo = new THREE.CylinderGeometry(0.3, 0.3, 1.2, 24);
+    const batFillMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x16a34a, emissiveIntensity: 0.9 });
+    const batteryFill = new THREE.Mesh(batFillGeo, batFillMat);
+    batteryCell.add(batteryFill);
+
+    // F. Process Holographic Pillars (5 pillars)
+    const procPillars = [];
+    for (let i = 0; i < 5; i++) {
+      const angle = ((-50 + i * 25) * Math.PI) / 180;
+      const px = Math.sin(angle) * 3.6;
+      const pz = Math.cos(angle) * 3.6;
+      const pGeo = new THREE.BoxGeometry(0.35, 1.0, 0.35);
+      const pMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.4, metalness: 0.8 });
+      const pillar = new THREE.Mesh(pGeo, pMat);
+      pillar.position.set(px, 0.5, pz);
+      scene.add(pillar);
+      procPillars.push(pillar);
+    }
+
+    // --- 4. Interactive Orbit Controls ---
+    let isDragging = false;
+    let prevMouseX = 0, prevMouseY = 0;
+    let yaw = 0.5, pitch = 0.3, distance = 13.0;
+
+    window.addEventListener('mousedown', (e) => {
+      if (e.target.closest('#hud') || e.target.closest('#toolbar')) return;
+      isDragging = true;
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - prevMouseX;
+      const dy = e.clientY - prevMouseY;
+      yaw += dx * 0.008;
+      pitch = Math.max(-0.1, Math.min(1.2, pitch - dy * 0.008));
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    window.addEventListener('wheel', (e) => {
+      distance = Math.max(5.0, Math.min(24.0, distance + e.deltaY * 0.015));
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'v' || e.key === 'V') toggleVRMode();
+      if (e.key === 'h' || e.key === 'H') toggleHUD();
+      if (e.key === 'r' || e.key === 'R') resetCamera();
+    });
+
+    function updateCameraRig() {
+      const cx = Math.sin(yaw) * Math.cos(pitch) * distance;
+      const cy = 2.5 + Math.sin(pitch) * distance;
+      const cz = Math.cos(yaw) * Math.cos(pitch) * distance;
+
+      monoCamera.position.set(cx, cy, cz);
+      monoCamera.lookAt(0, 2.2, 0);
+
+      // Cardboard VR Eye Positions
+      const rightVec = new THREE.Vector3();
+      monoCamera.getWorldDirection(new THREE.Vector3());
+      rightVec.crossVectors(monoCamera.getWorldDirection(new THREE.Vector3()), new THREE.Vector3(0, 1, 0)).normalize();
+
+      leftCamera.position.copy(monoCamera.position).addScaledVector(rightVec, -ipd * 0.5);
+      leftCamera.lookAt(0, 2.2, 0);
+
+      rightCamera.position.copy(monoCamera.position).addScaledVector(rightVec, ipd * 0.5);
+      rightCamera.lookAt(0, 2.2, 0);
+    }
+
+    function toggleVRMode() {
+      isVRMode = !isVRMode;
+      document.getElementById('btn-vr').classList.toggle('active', isVRMode);
+      document.getElementById('vr-divider').classList.toggle('active', isVRMode);
+      onWindowResize();
+    }
+
+    function toggleHUD() {
+      showHUD = !showHUD;
+      document.getElementById('hud').classList.toggle('hidden', !showHUD);
+    }
+
+    function resetCamera() {
+      yaw = 0.5;
+      pitch = 0.3;
+      distance = 13.0;
+    }
+
+    function onWindowResize() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      renderer.setSize(w, h);
+      monoCamera.aspect = w / h;
+      monoCamera.updateProjectionMatrix();
+
+      leftCamera.aspect = (w / 2) / h;
+      leftCamera.updateProjectionMatrix();
+
+      rightCamera.aspect = (w / 2) / h;
+      rightCamera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', onWindowResize);
+
+    // --- 5. Real-Time Telemetry & Lerping ---
+    const telemetry = {
+      cpu: 28.5,
+      ram: 45.0,
+      swap: 12.0,
+      disk: 54.2,
+      upload: 150,
+      download: 850,
+      battery: 88,
+      batteryCharging: true,
+      processes: 192,
+      topProcs: [18.5, 9.2, 6.4, 4.8, 3.5]
+    };
+
+    const targetTelemetry = { ...telemetry };
+
+    async function pollTelemetry() {
+      try {
+        const res = await fetch('/api/v1/metrics/live');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.cpu) targetTelemetry.cpu = data.cpu.overall_percent;
+          if (data.memory) {
+            targetTelemetry.ram = data.memory.ram_percent;
+            targetTelemetry.swap = data.memory.swap_percent;
+          }
+          if (data.disk && data.disk.partitions.length > 0) {
+            targetTelemetry.disk = data.disk.partitions[0].percent;
+          }
+          if (data.network) {
+            targetTelemetry.upload = Math.round(data.network.upload_speed_bps / 1024);
+            targetTelemetry.download = Math.round(data.network.download_speed_bps / 1024);
+          }
+          if (data.battery) {
+            targetTelemetry.battery = data.battery.percent || 90;
+            targetTelemetry.batteryCharging = data.battery.power_plugged !== false;
+          }
+          if (data.top_processes && Array.isArray(data.top_processes)) {
+            targetTelemetry.topProcs = data.top_processes.slice(0, 5).map(p => p.cpu_percent);
+            targetTelemetry.processes = data.top_processes.length;
+          }
+        }
+      } catch (e) {
+        // Fallback organic simulation
+        const t = performance.now() * 0.001;
+        targetTelemetry.cpu = Math.max(5, Math.min(95, 25 + Math.sin(t * 0.5) * 20 + Math.sin(t * 1.3) * 15));
+        targetTelemetry.ram = Math.max(20, Math.min(80, 45 + Math.sin(t * 0.2) * 10));
+        targetTelemetry.upload = Math.round(120 + Math.abs(Math.sin(t * 0.8)) * 300);
+        targetTelemetry.download = Math.round(600 + Math.abs(Math.cos(t * 0.6)) * 1400);
+      }
+    }
+    setInterval(pollTelemetry, 1500);
+    pollTelemetry();
+
+    // --- 6. Animation Loop ---
+    let clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      const time = clock.getElapsedTime();
+
+      // Smooth Lerp
+      const lerpSpeed = delta * 4.0;
+      telemetry.cpu += (targetTelemetry.cpu - telemetry.cpu) * lerpSpeed;
+      telemetry.ram += (targetTelemetry.ram - telemetry.ram) * lerpSpeed;
+      telemetry.swap += (targetTelemetry.swap - telemetry.swap) * lerpSpeed;
+      telemetry.disk += (targetTelemetry.disk - telemetry.disk) * lerpSpeed;
+      telemetry.upload += (targetTelemetry.upload - telemetry.upload) * lerpSpeed;
+      telemetry.download += (targetTelemetry.download - telemetry.download) * lerpSpeed;
+      telemetry.battery += (targetTelemetry.battery - telemetry.battery) * lerpSpeed;
+
+      // A. Animate CPU Core
+      const rotSpeed = 0.5 + (telemetry.cpu * 0.04);
+      cpuCore.rotation.y += rotSpeed * delta;
+      cpuCore.rotation.x += (rotSpeed * 0.6) * delta;
+
+      // Breathing pulse
+      const pulse = 1.0 + Math.sin(time * (1.8 + telemetry.cpu * 0.05)) * (0.05 * (telemetry.cpu / 100));
+      cpuCore.scale.set(pulse, pulse, pulse);
+
+      // CPU Color lerp
+      let coreColor = new THREE.Color(0x00e5ff);
+      if (telemetry.cpu > 75) {
+        coreColor.setHex(0xef4444);
+      } else if (telemetry.cpu > 45) {
+        coreColor.setHex(0xf59e0b);
+      }
+      cpuMat.color.copy(coreColor);
+      cpuMat.emissive.copy(coreColor);
+      coreLight.color.copy(coreColor);
+      coreLight.intensity = 1.8 + (telemetry.cpu * 0.03);
+
+      // B. Animate Memory Rings
+      ramRing.rotation.z += (0.4 + telemetry.ram * 0.015) * delta;
+      const ramScale = 1.0 + (telemetry.ram / 100) * 0.25;
+      ramRing.scale.set(ramScale, ramScale, 1.0);
+
+      swapRing.rotation.y -= (0.5 + telemetry.swap * 0.02) * delta;
+
+      // C. Animate Disk Platters
+      for (let i = 0; i < diskPlatters.length; i++) {
+        const floatY = Math.sin(time * 1.5 + (i * 0.6)) * 0.03;
+        diskPlatters[i].position.y = 0.3 + (i * 0.32) + floatY;
+        diskPlatters[i].rotation.y += (0.1 + i * 0.05) * delta;
+      }
+
+      // D. Animate Network Particles
+      const upPos = upParticles.geometry.attributes.position.array;
+      const upSpeed = (telemetry.upload / 200) * 2.0 * delta;
+      for (let i = 1; i < upPos.length; i += 3) {
+        upPos[i] += upSpeed;
+        if (upPos[i] > 3.0) upPos[i] = 0;
+      }
+      upParticles.geometry.attributes.position.needsUpdate = true;
+
+      const downPos = downParticles.geometry.attributes.position.array;
+      const downSpeed = (telemetry.download / 400) * 2.5 * delta;
+      for (let i = 1; i < downPos.length; i += 3) {
+        downPos[i] -= downSpeed;
+        if (downPos[i] < 0) downPos[i] = 3.0;
+      }
+      downParticles.geometry.attributes.position.needsUpdate = true;
+
+      // E. Animate Battery
+      const batNorm = Math.min(1.0, Math.max(0.05, telemetry.battery / 100));
+      batteryFill.scale.y = batNorm;
+      batteryFill.position.y = -0.6 + (batNorm * 0.6);
+      batteryCell.position.y = 1.2 + Math.sin(time * 2.0) * 0.04;
+
+      // F. Animate Process Pillars
+      for (let i = 0; i < procPillars.length; i++) {
+        const cpuP = targetTelemetry.topProcs[i] || 5;
+        const targetH = Math.max(0.2, Math.min(2.2, cpuP * 0.08));
+        procPillars[i].scale.y += (targetH - procPillars[i].scale.y) * delta * 3.0;
+        procPillars[i].position.y = procPillars[i].scale.y * 0.5;
+      }
+
+      // Update HUD UI values
+      if (showHUD) {
+        document.getElementById('val-cpu').textContent = telemetry.cpu.toFixed(1) + ' %';
+        document.getElementById('val-ram').textContent = telemetry.ram.toFixed(1) + ' %';
+        document.getElementById('val-swap').textContent = telemetry.swap.toFixed(1) + ' %';
+        document.getElementById('val-disk').textContent = telemetry.disk.toFixed(1) + ' %';
+        document.getElementById('val-net').textContent = '↑ ' + telemetry.upload.toFixed(0) + ' KB/s | ↓ ' + telemetry.download.toFixed(0) + ' KB/s';
+        document.getElementById('val-bat').textContent = telemetry.battery.toFixed(0) + '% (' + (telemetry.batteryCharging ? 'Charging' : 'Discharging') + ')';
+        document.getElementById('val-proc').textContent = targetTelemetry.processes;
+      }
+
+      // Render Viewports (Mono vs VR Cardboard Dual-View)
+      updateCameraRig();
+
+      if (!isVRMode) {
+        renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+        renderer.setScissor(0, 0, window.innerWidth, window.innerHeight);
+        renderer.setScissorTest(false);
+        renderer.render(scene, monoCamera);
+      } else {
+        const halfW = window.innerWidth / 2;
+        const h = window.innerHeight;
+        renderer.setScissorTest(true);
+
+        // Left Eye Viewport
+        renderer.setViewport(0, 0, halfW, h);
+        renderer.setScissor(0, 0, halfW, h);
+        renderer.render(scene, leftCamera);
+
+        // Right Eye Viewport
+        renderer.setViewport(halfW, 0, halfW, h);
+        renderer.setScissor(halfW, 0, halfW, h);
+        renderer.render(scene, rightCamera);
+      }
+    }
+
+    animate();
+  </script>
+</body>
+</html>

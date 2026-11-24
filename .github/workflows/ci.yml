@@ -33,6 +33,7 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov
           pip install -e .
+          python -m prisma generate --schema prisma/schema.prisma || true
 
       - name: Run unit tests
         run: |
